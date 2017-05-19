@@ -3,7 +3,7 @@ package main
 import (
   "os"
   "path"
-  "fmt"
+  "log"
   "github.com/urfave/cli"
   ghpages ".."
 )
@@ -68,8 +68,7 @@ func main() {
   app.Action = func(c *cli.Context) error {
     pwd, err := os.Getwd()
     if err != nil {
-      fmt.Println(err)
-      os.Exit(1)
+      log.Fatal(err)
     }
 
     ghpages.Publish(path.Join(pwd, c.String("dist")), ghpages.Config {

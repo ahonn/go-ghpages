@@ -6,6 +6,7 @@ import (
   "os/exec"
   "path"
   "path/filepath"
+  "strings"
   // "gopkg.in/src-d/go-git.v4"
 )
 
@@ -23,16 +24,25 @@ type Config struct {
   Remote string
 }
 
+func getCachDir() string {
+  pwd, err := os.Getwd()
+  if err != nil {
+    log.Fatal(err)
+  }
+  return path.Join(pwd, ".cache/")
+}
+
 func getRepo(config Config) string {
   if config.Repo != "" {
     return config.Repo
   }
-  cmd := "git config --get remote." + config.Remote + ".url"
-  out, err := exec.Command(cmd).Output()
+  key := "remote." + config.Remote + ".url"
+  out, err := exec.Command("git", "config", "--get", key).Output()
   if err != nil {
     log.Fatal(err)
   }
-  return string(out)
+  output := string(out)
+  return strings.Replace(output, "\n","",-1)
 }
 
 func Publish(basePath string, config Config) {
@@ -57,7 +67,10 @@ func Publish(basePath string, config Config) {
   }
 
   repo := getRepo(config)
-  log.Println(repo)
-  log.Println(files)
+  cloneDir := getCachDir()
+
+  log.Printf("clone %s to %s", repo, cloneDir)
+
+  // log.Println(files)
 }
 
