@@ -5,16 +5,16 @@ import (
   "fmt"
   "os"
   "os/exec"
-  "os/user"
+  // "os/user"
   "path"
   "path/filepath"
   "strings"
-  "io/ioutil"
+  // "io/ioutil"
 
-  "golang.org/x/crypto/ssh"
-  "gopkg.in/src-d/go-git.v4"
-  "gopkg.in/src-d/go-git.v4/plumbing"
-  gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
+  // "golang.org/x/crypto/ssh"
+  // "gopkg.in/src-d/go-git.v4"
+  // "gopkg.in/src-d/go-git.v4/plumbing"
+  // gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
 type Options struct {
@@ -26,7 +26,7 @@ type Options struct {
   Message string
   Dotfiles bool
   Repo string
-  Depth int
+  Depth string
   Remote string
 }
 
@@ -51,21 +51,21 @@ func getRepo(opt Options) string {
   return output
 }
 
-func getSSHSigner() ssh.Signer {
-  usr, err := user.Current()
-  if err != nil {
-      log.Fatal( err )
-  }
-  key, err := ioutil.ReadFile(path.Join(usr.HomeDir, ".ssh/id_rsa"))
-  if err != nil {
-    log.Fatalf("unable to read private key: %v", err)
-  }
-  signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		log.Fatalf("unable to parse private key: %v", err)
-  }
-  return signer
-}
+// func getSSHSigner() ssh.Signer {
+  // usr, err := user.Current()
+  // if err != nil {
+      // log.Fatal( err )
+  // }
+  // key, err := ioutil.ReadFile(path.Join(usr.HomeDir, ".ssh/id_rsa"))
+  // if err != nil {
+    // log.Fatalf("unable to read private key: %v", err)
+  // }
+  // signer, err := ssh.ParsePrivateKey(key)
+	// if err != nil {
+		// log.Fatalf("unable to parse private key: %v", err)
+  // }
+  // return signer
+// }
 
 func Publish(basePath string, opt Options) {
   fmt.Println(basePath)
@@ -87,41 +87,52 @@ func Publish(basePath string, opt Options) {
 
   cloneDir := getCacheDir()
   repo := getRepo(opt)
-  signer := getSSHSigner()
+  // signer := getSSHSigner()
 
-  branch := plumbing.ReferenceName("refs/heads/" + opt.Branch)
+  // branch := plumbing.ReferenceName("refs/heads/" + opt.Branch)
 
-  // Clone Repo
-  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
-  r, err := git.PlainClone(cloneDir, false, &git.CloneOptions {
-    URL: repo,
-    Depth: opt.Depth,
-    RemoteName: opt.Remote,
-    ReferenceName: branch,
-    Auth: &gitssh.PublicKeys{User: "git", Signer: signer},
-    Progress: os.Stdout,
-  })
-  if err != nil {
-    fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
-    r, err = git.PlainOpen(cloneDir)
-    if err != nil {
-      log.Fatal(err)
-    }
-  }
+  // // Clone Repo
+  // fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
+  // r, err := git.PlainClone(cloneDir, false, &git.CloneOptions {
+    // URL: repo,
+    // Depth: opt.Depth,
+    // RemoteName: opt.Remote,
+    // ReferenceName: branch,
+    // Auth: &gitssh.PublicKeys{User: "git", Signer: signer},
+    // Progress: os.Stdout,
+  // })
+  // if err != nil {
+    // fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
+    // r, err = git.PlainOpen(cloneDir)
+    // if err != nil {
+      // log.Fatal(err)
+    // }
+  // }
 
-  // Checkout Repo
-  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout to branch: " + opt.Branch)
-  w, err := r.Worktree()
-  if err != nil {
-    log.Fatal(err)
-  }
-  err = w.Checkout(&git.CheckoutOptions {
-    Branch: plumbing.ReferenceName("refs/heads/" + opt.Branch),
-  })
-  if err != nil {
-    log.Fatal(err)
-  }
+  // // Checkout Repo
+  // fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout to branch: " + opt.Branch)
+  // w, err := r.Worktree()
+  // if err != nil {
+    // log.Fatal(err)
+  // }
+  // err = w.Checkout(&git.CheckoutOptions {
+    // Branch: plumbing.ReferenceName("refs/heads/" + opt.Branch),
+  // })
+  // if err != nil {
+    // log.Fatal(err)
+  // }
 
   // log.Println(files)
+
+  git := &GitClient {
+    Dir: cloneDir,
+    Opt: opt,
+  }
+
+  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
+  err = git.Clone(repo, cloneDir)
+  if err != nil {
+    fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
+  }
 }
 

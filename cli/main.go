@@ -49,9 +49,9 @@ func main() {
       Name: "repo, r",
       Usage: "URL of the `repository` you are pushing to",
     },
-    cli.IntFlag {
+    cli.StringFlag {
       Name: "depth, p",
-      Value: 1,
+      Value: "1",
       Usage: "Depth for clone",
     },
     cli.StringFlag {
@@ -76,7 +76,7 @@ func main() {
       Message: c.String("message"),
       Dotfiles: c.Bool("dotfiles"),
       Repo: c.String("repo"),
-      Depth: c.Int("depth"),
+      Depth: c.String("depth"),
       Remote: c.String("remote"),
     })
 
