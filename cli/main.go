@@ -5,7 +5,7 @@ import (
   "path"
   "log"
   "github.com/urfave/cli"
-  ghpages ".."
+  "github.com/ahonn/go-ghpages"
 )
 
 func main() {
@@ -80,7 +80,7 @@ func main() {
       Silent: c.Bool("silent"),
       Message: c.String("message"),
       Dotfiles: c.Bool("dotfiles"),
-      Repo: c.String("Repo"),
+      Repo: c.String("repo"),
       Depth: c.Int("depth"),
       Remote: c.String("remote"),
     })

@@ -4,10 +4,15 @@ import (
   "log"
   "os"
   "os/exec"
+  "os/user"
   "path"
   "path/filepath"
   "strings"
-  // "gopkg.in/src-d/go-git.v4"
+  "io/ioutil"
+
+  "golang.org/x/crypto/ssh"
+  "gopkg.in/src-d/go-git.v4"
+  gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
 type Config struct {
@@ -24,7 +29,7 @@ type Config struct {
   Remote string
 }
 
-func getCachDir() string {
+func getCacheDir() string {
   pwd, err := os.Getwd()
   if err != nil {
     log.Fatal(err)
@@ -32,17 +37,17 @@ func getCachDir() string {
   return path.Join(pwd, ".cache/")
 }
 
-func getRepo(config Config) string {
-  if config.Repo != "" {
-    return config.Repo
+func getRepo(c Config) string {
+  if c.Repo != "" {
+    return c.Repo
   }
-  key := "remote." + config.Remote + ".url"
+  key := "remote." + c.Remote + ".url"
   out, err := exec.Command("git", "config", "--get", key).Output()
   if err != nil {
     log.Fatal(err)
   }
-  output := string(out)
-  return strings.Replace(output, "\n","",-1)
+  output := strings.Replace(string(out), "\n", "", -1)
+  return output
 }
 
 func Publish(basePath string, config Config) {
@@ -66,10 +71,34 @@ func Publish(basePath string, config Config) {
     os.Exit(1)
   }
 
+  cloneDir := getCacheDir()
   repo := getRepo(config)
-  cloneDir := getCachDir()
 
-  log.Printf("clone %s to %s", repo, cloneDir)
+  usr, err := user.Current()
+  if err != nil {
+      log.Fatal( err )
+  }
+  key, err := ioutil.ReadFile(path.Join(usr.HomeDir, ".ssh/id_rsa"))
+  if err != nil {
+    log.Fatalf("unable to read private key: %v", err)
+  }
+  signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Fatalf("unable to parse private key: %v", err)
+  }
+
+  log.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
+  _, err = git.PlainClone(cloneDir, false, &git.CloneOptions {
+    URL: repo,
+    Depth: config.Depth,
+    SingleBranch: true,
+    Auth: &gitssh.PublicKeys{User: "git", Signer: signer},
+    RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+    Progress: os.Stdout,
+  })
+  if err != nil {
+    log.Fatal(err)
+  }
 
   // log.Println(files)
 }
