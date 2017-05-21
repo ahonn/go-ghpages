@@ -17,7 +17,7 @@ import (
   gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
-type Config struct {
+type Options struct {
   Dist string
   Src  string
   Branch string
@@ -38,11 +38,11 @@ func getCacheDir() string {
   return path.Join(pwd, ".cache/")
 }
 
-func getRepo(c Config) string {
-  if c.Repo != "" {
-    return c.Repo
+func getRepo(opt Options) string {
+  if opt.Repo != "" {
+    return opt.Repo
   }
-  key := "remote." + c.Remote + ".url"
+  key := "remote." + opt.Remote + ".url"
   out, err := exec.Command("git", "config", "--get", key).Output()
   if err != nil {
     log.Fatal(err)
@@ -67,9 +67,9 @@ func getSSHSigner() ssh.Signer {
   return signer
 }
 
-func Publish(basePath string, config Config) {
+func Publish(basePath string, opt Options) {
   fmt.Println(basePath)
-  fmt.Println(config)
+  fmt.Println(opt)
 
   // Exit when file is not exist or not directory.
   fi, err := os.Stat(basePath)
@@ -77,7 +77,7 @@ func Publish(basePath string, config Config) {
     log.Fatal("The base path option must be an existing directory")
   }
 
-  files, err := filepath.Glob(path.Join(basePath, config.Src))
+  files, err := filepath.Glob(path.Join(basePath, opt.Src))
   if err != nil {
     log.Fatal(err)
   }
@@ -86,17 +86,19 @@ func Publish(basePath string, config Config) {
   }
 
   cloneDir := getCacheDir()
-  repo := getRepo(config)
+  repo := getRepo(opt)
   signer := getSSHSigner()
+
+  branch := plumbing.ReferenceName("refs/heads/" + opt.Branch)
 
   // Clone Repo
   fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
   r, err := git.PlainClone(cloneDir, false, &git.CloneOptions {
     URL: repo,
-    Depth: config.Depth,
-    SingleBranch: true,
+    Depth: opt.Depth,
+    RemoteName: opt.Remote,
+    ReferenceName: branch,
     Auth: &gitssh.PublicKeys{User: "git", Signer: signer},
-    RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
     Progress: os.Stdout,
   })
   if err != nil {
@@ -107,26 +109,18 @@ func Publish(basePath string, config Config) {
     }
   }
 
-  // ref, err := r.Head()
-	// fmt.Println(ref.Hash())
-
   // Checkout Repo
-  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout to branch: " + config.Branch)
+  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout to branch: " + opt.Branch)
   w, err := r.Worktree()
   if err != nil {
     log.Fatal(err)
   }
   err = w.Checkout(&git.CheckoutOptions {
-    Branch: plumbing.ReferenceName("refs/heads/" + config.Branch),
+    Branch: plumbing.ReferenceName("refs/heads/" + opt.Branch),
   })
   if err != nil {
     log.Fatal(err)
   }
-
-  // ref, err = r.Head()
-	// fmt.Println(ref.Hash())
-
-  os.Remove(cloneDir) 
 
   // log.Println(files)
 }
