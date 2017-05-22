@@ -37,25 +37,20 @@ func (this *GitClient) Command(dir string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func (this *GitClient) GetRepo() string {
-	if this.Opt.Repo != "" {
-		return this.Opt.Repo
-	}
+func (this *GitClient) Clean() error {
 	args := []string{
-		"config",
-		"--get",
-		"remote." + this.Opt.Remote + ".url",
+		"clean",
+		"-f",
+		"-d",
 	}
-	cmd := this.Command(".", args...)
-	out, err := cmd.Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	output := strings.Replace(string(out), "\n", "", -1)
-	return output
+	cmd := this.Command("", args...)
+	_, err := cmd.Output()
+	return err
 }
 
 func (this *GitClient) CheckRemote() (bool, error) {
+	repoRemote := this.Opt.GetRepo()
+
 	args := []string{
 		"config",
 		"--get",
@@ -63,9 +58,9 @@ func (this *GitClient) CheckRemote() (bool, error) {
 	}
 	cmd := this.Command("", args...)
 	out, err := cmd.Output()
-	output := strings.Replace(string(out), "\n", "", -1)
-	check := output == this.GetRepo()
-	// log.Println(output, this.GetRepo())
+	cloneRemote := strings.Replace(string(out), "\n", "", -1)
+
+	check := cloneRemote == repoRemote
 	return check, err
 }
 

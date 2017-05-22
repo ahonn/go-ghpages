@@ -1,12 +1,15 @@
 package ghpages
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/user"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 const CACHE_DIR = ".ghpages_cache"
@@ -25,22 +28,52 @@ type Options struct {
 	Clean    bool
 }
 
+// Get repository url. if unset `Repo` filed, exec `git config`
+func (this *Options) GetRepo() string {
+	if this.Repo != "" {
+		return this.Repo
+	}
+	args := []string{
+		"config",
+		"--get",
+		"remote." + this.Remote + ".url",
+	}
+	cmd := exec.Command("git", args...)
+	out, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	output := strings.Replace(string(out), "\n", "", -1)
+	return output
+}
+
+func handleError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func getCacheDir() string {
 	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-	pwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cacheDir := path.Join(pwd, usr.HomeDir, CACHE_DIR)
+	handleError(err)
+	cacheDir := path.Join(usr.HomeDir, CACHE_DIR)
 	return cacheDir
 }
 
 func cleanCacheDir() error {
 	cacheDir := getCacheDir()
 	return os.RemoveAll(cacheDir)
+}
+
+func getCloneDir(repo string) string {
+	cacheDir := getCacheDir()
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+		err := os.Mkdir(cacheDir, 0777)
+		handleError(err)
+	}
+	repoHash := base64.StdEncoding.EncodeToString([]byte(repo))
+	cloneDir := path.Join(cacheDir, repoHash)
+	return cloneDir
 }
 
 func Publish(basePath string, opt Options) {
@@ -60,34 +93,41 @@ func Publish(basePath string, opt Options) {
 		log.Fatal("The base path option must be an existing directory")
 	}
 
+	// Get the files that need to be commited
 	files, err := filepath.Glob(path.Join(basePath, opt.Src))
-	if err != nil {
-		log.Fatal(err)
-	}
+	handleError(err)
 	if len(files) == 0 {
 		log.Fatal("The pattern in the 'src' property didn't match any files.")
 	}
 
+	repo := opt.GetRepo()
+	cloneDir := getCloneDir(repo)
+
 	git := &GitClient{
-		Dir: cacheDir,
+		Dir: cloneDir,
 		Opt: opt,
 	}
-	repo := git.GetRepo()
 
-	if _, err := os.Stat(cacheDir); !os.IsNotExist(err) {
+	// Check the remote if clone directory is exists
+	if _, err := os.Stat(cloneDir); !os.IsNotExist(err) {
 		check, err := git.CheckRemote()
-		if err != nil {
-			log.Fatal(err)
-		}
+		handleError(err)
 		if !check {
-			fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clean cache directory: cache remote is not "+repo)
-			cleanCacheDir()
+			logMsg := "Clean repository cache directory: cache remote is not " + repo
+			fmt.Printf("\x1b[34;1m%s\x1b[0m\n", logMsg)
+			os.RemoveAll(cloneDir)
 		}
 	}
 
-	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone "+repo+" to "+cacheDir)
-	err = git.Clone(repo, cacheDir)
+	// Clone repository
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone "+repo+" into "+cacheDir)
+	err = git.Clone(repo, cloneDir)
 	if err != nil {
 		fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
 	}
+
+	// Remove untracked files form the working tree
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Remove untracked files form the working tree")
+	err = git.Clean()
+	handleError(err)
 }
