@@ -1,138 +1,93 @@
 package ghpages
 
 import (
-  "log"
-  "fmt"
-  "os"
-  "os/exec"
-  // "os/user"
-  "path"
-  "path/filepath"
-  "strings"
-  // "io/ioutil"
-
-  // "golang.org/x/crypto/ssh"
-  // "gopkg.in/src-d/go-git.v4"
-  // "gopkg.in/src-d/go-git.v4/plumbing"
-  // gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
+	"fmt"
+	"log"
+	"os"
+	"os/user"
+	"path"
+	"path/filepath"
 )
 
+const CACHE_DIR = ".ghpages_cache"
+
 type Options struct {
-  Dist string
-  Src  string
-  Branch string
-  Dest string
-  Silent bool
-  Message string
-  Dotfiles bool
-  Repo string
-  Depth string
-  Remote string
+	Dist     string
+	Src      string
+	Branch   string
+	Dest     string
+	Silent   bool
+	Message  string
+	Dotfiles bool
+	Repo     string
+	Depth    string
+	Remote   string
+	Clean    bool
 }
 
 func getCacheDir() string {
-  pwd, err := os.Getwd()
-  if err != nil {
-    log.Fatal(err)
-  }
-  return path.Join(pwd, ".cache/")
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cacheDir := path.Join(pwd, usr.HomeDir, CACHE_DIR)
+	return cacheDir
 }
 
-func getRepo(opt Options) string {
-  if opt.Repo != "" {
-    return opt.Repo
-  }
-  key := "remote." + opt.Remote + ".url"
-  out, err := exec.Command("git", "config", "--get", key).Output()
-  if err != nil {
-    log.Fatal(err)
-  }
-  output := strings.Replace(string(out), "\n", "", -1)
-  return output
+func cleanCacheDir() error {
+	cacheDir := getCacheDir()
+	return os.RemoveAll(cacheDir)
 }
-
-// func getSSHSigner() ssh.Signer {
-  // usr, err := user.Current()
-  // if err != nil {
-      // log.Fatal( err )
-  // }
-  // key, err := ioutil.ReadFile(path.Join(usr.HomeDir, ".ssh/id_rsa"))
-  // if err != nil {
-    // log.Fatalf("unable to read private key: %v", err)
-  // }
-  // signer, err := ssh.ParsePrivateKey(key)
-	// if err != nil {
-		// log.Fatalf("unable to parse private key: %v", err)
-  // }
-  // return signer
-// }
 
 func Publish(basePath string, opt Options) {
-  fmt.Println(basePath)
-  fmt.Println(opt)
+	fmt.Println(basePath)
+	fmt.Println(opt)
 
-  // Exit when file is not exist or not directory.
-  fi, err := os.Stat(basePath)
-  if os.IsNotExist(err) || !fi.IsDir() {
-    log.Fatal("The base path option must be an existing directory")
-  }
+	cacheDir := getCacheDir()
+	if opt.Clean {
+		fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clean cache directory in: "+cacheDir)
+		cleanCacheDir()
+		return
+	}
 
-  files, err := filepath.Glob(path.Join(basePath, opt.Src))
-  if err != nil {
-    log.Fatal(err)
-  }
-  if len(files) == 0 {
-    log.Fatal("The pattern in the 'src' property didn't match any files.")
-  }
+	// Exit when file is not exist or not directory.
+	fi, err := os.Stat(basePath)
+	if os.IsNotExist(err) || !fi.IsDir() {
+		log.Fatal("The base path option must be an existing directory")
+	}
 
-  cloneDir := getCacheDir()
-  repo := getRepo(opt)
-  // signer := getSSHSigner()
+	files, err := filepath.Glob(path.Join(basePath, opt.Src))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(files) == 0 {
+		log.Fatal("The pattern in the 'src' property didn't match any files.")
+	}
 
-  // branch := plumbing.ReferenceName("refs/heads/" + opt.Branch)
+	git := &GitClient{
+		Dir: cacheDir,
+		Opt: opt,
+	}
+	repo := git.GetRepo()
 
-  // // Clone Repo
-  // fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
-  // r, err := git.PlainClone(cloneDir, false, &git.CloneOptions {
-    // URL: repo,
-    // Depth: opt.Depth,
-    // RemoteName: opt.Remote,
-    // ReferenceName: branch,
-    // Auth: &gitssh.PublicKeys{User: "git", Signer: signer},
-    // Progress: os.Stdout,
-  // })
-  // if err != nil {
-    // fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
-    // r, err = git.PlainOpen(cloneDir)
-    // if err != nil {
-      // log.Fatal(err)
-    // }
-  // }
+	if _, err := os.Stat(cacheDir); !os.IsNotExist(err) {
+		check, err := git.CheckRemote()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !check {
+			fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clean cache directory: cache remote is not "+repo)
+			cleanCacheDir()
+		}
+	}
 
-  // // Checkout Repo
-  // fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout to branch: " + opt.Branch)
-  // w, err := r.Worktree()
-  // if err != nil {
-    // log.Fatal(err)
-  // }
-  // err = w.Checkout(&git.CheckoutOptions {
-    // Branch: plumbing.ReferenceName("refs/heads/" + opt.Branch),
-  // })
-  // if err != nil {
-    // log.Fatal(err)
-  // }
-
-  // log.Println(files)
-
-  git := &GitClient {
-    Dir: cloneDir,
-    Opt: opt,
-  }
-
-  fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone " + repo + " to " + cloneDir)
-  err = git.Clone(repo, cloneDir)
-  if err != nil {
-    fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
-  }
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone "+repo+" to "+cacheDir)
+	err = git.Clone(repo, cacheDir)
+	if err != nil {
+		fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
+	}
 }
-
