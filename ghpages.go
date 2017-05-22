@@ -19,6 +19,7 @@ type Options struct {
 	Src      string
 	Branch   string
 	Dest     string
+	Add      bool
 	Silent   bool
 	Message  string
 	Dotfiles bool
@@ -94,6 +95,7 @@ func Publish(basePath string, opt Options) {
 	}
 
 	// Get the files that need to be commited
+	// TODO: Fix this, files is not all files
 	files, err := filepath.Glob(path.Join(basePath, opt.Src))
 	handleError(err)
 	if len(files) == 0 {
@@ -102,6 +104,7 @@ func Publish(basePath string, opt Options) {
 
 	repo := opt.GetRepo()
 	cloneDir := getCloneDir(repo)
+	destDir := path.Join(cloneDir, opt.Dest)
 
 	git := &GitClient{
 		Dir: cloneDir,
@@ -120,14 +123,68 @@ func Publish(basePath string, opt Options) {
 	}
 
 	// Clone repository
-	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone "+repo+" into "+cacheDir)
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clone "+repo)
 	err = git.Clone(repo, cloneDir)
 	if err != nil {
 		fmt.Printf("\x1b[36;1m%s\x1b[0m\n", err)
 	}
 
 	// Remove untracked files form the working tree
-	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Remove untracked files form the working tree")
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Clean untracked files")
 	err = git.Clean()
+	handleError(err)
+
+	// Download objects and refs from another repository
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Fetch objects and refs")
+	err = git.Fetch(opt.Remote)
+	handleError(err)
+
+	// Checkout the Branch
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Checkout the branch to "+opt.Branch)
+	err = git.Checkout(opt.Branch)
+	handleError(err)
+
+	// Remove files
+	if !opt.Add {
+		fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Remove destination files")
+		removeFiles, err := filepath.Glob(path.Join(destDir, "*"))
+		handleError(err)
+		if len(removeFiles) != 0 {
+			err = git.Rm(removeFiles)
+			handleError(err)
+		}
+	}
+
+	// Copy files
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Copy files into cache directory")
+	if _, err := os.Stat(destDir); os.IsNotExist(err) {
+		err := os.Mkdir(destDir, 0777)
+		handleError(err)
+	}
+	for _, file := range files {
+		fmt.Println(file)
+		base := filepath.Base(file)
+		newName := path.Join(cloneDir, opt.Dest, base)
+		err := os.Link(file, newName)
+		if err != nil {
+			pwd, _ := os.Getwd()
+			rel, _ := filepath.Rel(pwd, file)
+			fmt.Printf("\x1b[36;1m%s\x1b[0m\n", "Skip copy file: "+rel)
+		}
+	}
+
+	// Add all files
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Add all files")
+	err = git.Add()
+	handleError(err)
+
+	// Commit change with message
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Commit change with message")
+	err = git.Commit(opt.Message)
+	handleError(err)
+
+	// Push a branch
+	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", "Push to "+opt.Branch+" branch")
+	err = git.Push(opt.Remote, opt.Branch)
 	handleError(err)
 }

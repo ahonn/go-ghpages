@@ -48,6 +48,27 @@ func (this *GitClient) Clean() error {
 	return err
 }
 
+func (this *GitClient) Rm(removeFiles []string) error {
+	files := []string{}
+	for _, file := range removeFiles {
+		if filepath.Base(file) != ".git" {
+			files = append(files, file)
+		}
+	}
+
+	args := []string{
+		"rm",
+		"--ignore-unmatch",
+		"-r",
+		"-f",
+		strings.Join(files, " "),
+	}
+	cmd := this.Command("", args...)
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
+	return err
+}
+
 func (this *GitClient) CheckRemote() (bool, error) {
 	repoRemote := this.Opt.GetRepo()
 
@@ -62,6 +83,17 @@ func (this *GitClient) CheckRemote() (bool, error) {
 
 	check := cloneRemote == repoRemote
 	return check, err
+}
+
+func (this *GitClient) Fetch(remote string) error {
+	args := []string{
+		"fetch",
+		remote,
+	}
+	cmd := this.Command("", args...)
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	return err
 }
 
 func (this *GitClient) Clone(repo string, cloneDir string) error {
@@ -79,7 +111,6 @@ func (this *GitClient) Clone(repo string, cloneDir string) error {
 			this.Opt.Depth,
 		}
 		cmd := this.Command(".", args...)
-		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
@@ -92,7 +123,6 @@ func (this *GitClient) Clone(repo string, cloneDir string) error {
 				this.Opt.Remote,
 			}
 			cmd := this.Command(".", args...)
-			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			err := cmd.Run()
 			return err
@@ -100,4 +130,62 @@ func (this *GitClient) Clone(repo string, cloneDir string) error {
 		return nil
 	}
 	return errors.New("Repository is already exists")
+}
+
+func (this *GitClient) Checkout(branch string) error {
+	args := []string{
+		"checkout",
+		branch,
+	}
+	cmd := this.Command("", args...)
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		args := []string{
+			"checkout",
+			"-b",
+			branch,
+		}
+		cmd := this.Command("", args...)
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		return err
+	}
+	return nil
+}
+
+func (this *GitClient) Add() error {
+	args := []string{
+		"add",
+		"--all",
+	}
+	cmd := this.Command("", args...)
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	return err
+}
+
+func (this *GitClient) Commit(message string) error {
+	args := []string{
+		"commit",
+		"-m",
+		message,
+	}
+	cmd := this.Command("", args...)
+	err := cmd.Run()
+	return err
+}
+
+func (this *GitClient) Push(remote string, branch string) error {
+	args := []string{
+		"push",
+		"--tags",
+		remote,
+		branch,
+	}
+	cmd := this.Command("", args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
+	return err
 }

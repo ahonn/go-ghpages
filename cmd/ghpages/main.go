@@ -33,6 +33,10 @@ func main() {
 			Usage: "target `directory` within the destination branch (relative to the root)",
 		},
 		cli.BoolFlag{
+			Name:  "add, a",
+			Usage: "only add, and never remove existing files",
+		},
+		cli.BoolFlag{
 			Name:  "silent, x",
 			Usage: "do not output the repository url",
 		},
@@ -76,6 +80,7 @@ func main() {
 			Src:      c.String("src"),
 			Branch:   c.String("branch"),
 			Dest:     c.String("dest"),
+			Add:      c.Bool("add"),
 			Silent:   c.Bool("silent"),
 			Message:  c.String("message"),
 			Dotfiles: c.Bool("dotfiles"),
