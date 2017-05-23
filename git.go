@@ -69,6 +69,18 @@ func (this *GitClient) Rm(removeFiles []string) error {
 	return err
 }
 
+func (this *GitClient) RmFiles(removeFiles []string) error {
+	for _, file := range removeFiles {
+		if filepath.Base(file) != ".git" {
+			err := os.RemoveAll(file)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (this *GitClient) CheckRemote() (bool, error) {
 	repoRemote := this.Opt.GetRepo()
 

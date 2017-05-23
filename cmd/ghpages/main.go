@@ -19,7 +19,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "src, s",
-			Value: "*",
+			Value: "**/*",
 			Usage: "pattern used to select which `files` to publish",
 		},
 		cli.StringFlag{
