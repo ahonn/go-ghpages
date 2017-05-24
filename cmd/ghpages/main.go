@@ -18,11 +18,6 @@ func main() {
 			Usage: "base durectory for all source `files`",
 		},
 		cli.StringFlag{
-			Name:  "src, s",
-			Value: "**/*",
-			Usage: "pattern used to select which `files` to publish",
-		},
-		cli.StringFlag{
 			Name:  "branch, b",
 			Value: "gh-pages",
 			Usage: "name of the `branch` you are pushing to",
@@ -36,18 +31,10 @@ func main() {
 			Name:  "add, a",
 			Usage: "only add, and never remove existing files",
 		},
-		cli.BoolFlag{
-			Name:  "silent, x",
-			Usage: "do not output the repository url",
-		},
 		cli.StringFlag{
 			Name:  "message, m",
 			Value: "Updates",
 			Usage: "commit `message`",
-		},
-		cli.BoolFlag{
-			Name:  "dotfiles, t",
-			Usage: "include dotfiles",
 		},
 		cli.StringFlag{
 			Name:  "repo, r",
@@ -76,18 +63,15 @@ func main() {
 		}
 
 		ghpages.Publish(path.Join(pwd, c.String("dist")), ghpages.Options{
-			Dist:     c.String("dist"),
-			Src:      c.String("src"),
-			Branch:   c.String("branch"),
-			Dest:     c.String("dest"),
-			Add:      c.Bool("add"),
-			Silent:   c.Bool("silent"),
-			Message:  c.String("message"),
-			Dotfiles: c.Bool("dotfiles"),
-			Repo:     c.String("repo"),
-			Depth:    c.String("depth"),
-			Remote:   c.String("remote"),
-			Clean:    c.Bool("clean"),
+			Dist:    c.String("dist"),
+			Branch:  c.String("branch"),
+			Dest:    c.String("dest"),
+			Add:     c.Bool("add"),
+			Message: c.String("message"),
+			Repo:    c.String("repo"),
+			Depth:   c.String("depth"),
+			Remote:  c.String("remote"),
+			Clean:   c.Bool("clean"),
 		})
 
 		return nil

@@ -35,7 +35,7 @@ func GetCloneDir(repo string) string {
 	return cloneDir
 }
 
-func GetAllAddFiles(dirPath string, matchFile string) []string {
+func GetAllAddFiles(dirPath string) []string {
 	fi, err := os.Stat(dirPath)
 	if os.IsNotExist(err) || !fi.IsDir() {
 		log.Fatal("The base path option must be an existing directory")
@@ -60,7 +60,7 @@ func Publish(basePath string, opt Options) {
 	repo := opt.GetRepo()
 	cloneDir := GetCloneDir(repo)
 	destDir := path.Join(cloneDir, opt.Dest)
-	addFiles := GetAllAddFiles(basePath, opt.Src)
+	addFiles := GetAllAddFiles(basePath)
 
 	git := &GitClient{
 		Dir: cloneDir,

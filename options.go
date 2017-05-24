@@ -7,18 +7,15 @@ import (
 )
 
 type Options struct {
-	Dist     string
-	Src      string
-	Branch   string
-	Dest     string
-	Add      bool
-	Silent   bool
-	Message  string
-	Dotfiles bool
-	Repo     string
-	Depth    string
-	Remote   string
-	Clean    bool
+	Dist    string
+	Branch  string
+	Dest    string
+	Add     bool
+	Message string
+	Repo    string
+	Depth   string
+	Remote  string
+	Clean   bool
 }
 
 // Get repository url. if unset `Repo` filed, exec `git config`

@@ -184,6 +184,8 @@ func (this *GitClient) Commit(message string) error {
 		message,
 	}
 	cmd := this.Command("", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	return err
 }
