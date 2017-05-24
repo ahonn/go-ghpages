@@ -2,8 +2,12 @@
 Tool for publishing files to a gh-pages branch on GitHub.
 package inspiration [gh-pages](https://github.com/tschaub/gh-pages) and the options too.
 
-## Usage
+## Install
+```
+go get -u github.com/ahonn/go-ghpages/cmd/ghpages
+```
 
+## Usage
 ### as CLI
 ```
 ghpages -d public -r git@github.com:ahonn/go-ghpages.git
