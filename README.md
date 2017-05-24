@@ -10,7 +10,7 @@ ghpages -d public -r git@github.com:ahonn/go-ghpages.git
 ```
 
 ### as a package
-```
+``` go
 import "github.com/ahonn/go-ghpages"
 
 opt := ghpages.Options {
