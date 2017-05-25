@@ -10,6 +10,8 @@ import (
 
 func main() {
 	app := cli.NewApp()
+	app.Name = "ghpages"
+	app.Usage = "tool for publishing files to a gh-pages branch on github"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
