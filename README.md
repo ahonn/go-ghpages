@@ -1,5 +1,6 @@
 # Go gh-pages
 Tool for publishing files to a gh-pages branch on GitHub.
+
 package inspiration [gh-pages](https://github.com/tschaub/gh-pages) and the options too.
 
 ## Install
@@ -13,7 +14,7 @@ go get -u github.com/ahonn/go-ghpages/cmd/ghpages
 ghpages -d public -r git@github.com:ahonn/go-ghpages.git
 ```
 
-### as a package
+### as Package
 ``` go
 import "github.com/ahonn/go-ghpages"
 
